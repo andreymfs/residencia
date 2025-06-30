@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: container-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: minha_base
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+
+  backend:
+    container_name: container-backend
+    build:
+      context: ./backend
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/minha_base
+      - JWT_SECRET=super-secret-key
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+    ports:
+      - "3001:3000"  # Porta externa 3001 para acesso via host
+    command: >
+      sh -c "npm install && npx prisma generate && npx prisma migrate deploy && npm start"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3001  # Essa URL será usada no build
+    image: imagem-frontend:1.0.0
+    container_name: container-frontend
+    depends_on:
+      - backend
+    environment:
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: super-nextauth-secret
+      NEXT_PUBLIC_API_URL: http://localhost:3001  # Essa será usada em runtime
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+
+volumes:
+  pgdata:
+
+networks:
+  app-network:
+    driver: bridge
