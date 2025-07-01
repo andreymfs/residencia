@@ -1,0 +1,7 @@
+NODE_ENV=development
+NEXTAUTH_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:3001
+INTERNAL_API_URL=http://backend:3001
+JWT_SECRET=algum-segredo
+NEXTAUTH_SECRET=ogLiX20yHVFF07dp6S2KEChglLltw1RXr5hpzPIwe9U=
+
