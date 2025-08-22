@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# === CONFIGURAÇÕES ===
+PROJECT_ID="seu-projeto-id"
+CLUSTER_NAME="residencia-cluster"
+ZONE="us-central1-a"
+REGION="us-central1"
+CHART_DIR="./residencia"  # Caminho para o chart Helm
+
+# === LOGIN E CONFIGURAÇÃO DO GCP ===
+echo ">>> Autenticando com Google Cloud..."
+gcloud auth login
+gcloud config set project $PROJECT_ID
+
+echo ">>> Criando cluster GKE..."
+gcloud container clusters create "$CLUSTER_NAME" \
+  --zone "$ZONE" \
+  --num-nodes=3 \
+  --enable-ip-alias
+
+echo ">>> Obtendo credenciais do cluster..."
+gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE"
+
+# === (Opcional) CRIAR NAMESPACE ===
+# kubectl create namespace residencia
+
+# === DEPLOY COM HELM ===
+echo ">>> Realizando deploy com Helm..."
+helm upgrade --install residencia "$CHART_DIR" \
+  --namespace default \
+  --create-namespace
+
+# === VERIFICAR STATUS ===
+echo ">>> Verificando status dos serviços..."
+kubectl get all
+
+# === OBTER IP EXTERNO DO FRONTEND ===
+echo ">>> IP externo do frontend:"
+kubectl get svc frontend -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+echo ""
+echo "Acesse o sistema com o IP acima."
+
+# === FIM ===

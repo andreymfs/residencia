@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: residencia-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: residencia-backend
+  template:
+    metadata:
+      labels:
+        app: residencia-backend
+    spec:
+      containers:
+        - name: backend
+          image: backend:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: DATABASE_URL
+              value: postgres://postgres:postgres@residencia-postgres:5432/residencia
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: residencia-backend
+spec:
+  selector:
+    app: residencia-backend
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: residencia-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: residencia-frontend
+  template:
+    metadata:
+      labels:
+        app: residencia-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: frontend:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: http://residencia-backend:5000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: residencia-frontend
+spec:
+  type: NodePort
+  selector:
+    app: residencia-frontend
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+      nodePort: 30080
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: residencia-pgdata
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: residencia-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: residencia-postgres
+  template:
+    metadata:
+      labels:
+        app: residencia-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: residencia
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              value: postgres
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: pgdata
+      volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: residencia-pgdata
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: residencia-postgres
+spec:
+  selector:
+    app: residencia-postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432

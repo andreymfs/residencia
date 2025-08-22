@@ -1,0 +1,19 @@
+name: Semgrep Cloud SAST
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep Cloud
+        uses: returntocorp/semgrep-action@v1
+        with:
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}

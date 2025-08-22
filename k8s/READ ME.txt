@@ -1,0 +1,8 @@
+Se estiver usando Minikube, após ter as imagens carregadas com minikube image load, aplique:
+
+kubectl apply -f k8s/deploy.yaml
+
+
+E acesse o frontend via:
+
+minikube service residencia-frontend

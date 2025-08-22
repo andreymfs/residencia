@@ -1,0 +1,203 @@
+# values.yaml – Meu App (Frontend + Backend)
+
+# ===================================================================
+# Opções globais
+# ===================================================================
+global:
+  imagePullSecrets: []         # Ex.: ["my-regcred"]
+  imageRegistry: ""            # Ex.: "ghcr.io/usuario" (opcional)
+
+# ===================================================================
+# Backend
+# ===================================================================
+backend:
+  enabled: true
+  replicas: 1
+
+  image:
+    repository: backend        # use o nome da imagem que você buildou no minikube/registry
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 3000
+
+  # Caso use NodePort (ex.: ambiente local sem Ingress)
+  nodePort:
+    enabled: false
+    port: 30082               # ajuste se necessário
+
+  # Variáveis de ambiente do backend
+  env:
+    # Se você já instalou o Bitnami PostgreSQL como release "meu-postgres",
+    # use o ClusterIP DNS do serviço abaixo:
+    DATABASE_URL: "postgres://postgres:postgres@meu-postgres-postgresql:5432/minha_base"
+    JWT_SECRET: "super-secret-key"
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "300m"
+      memory: "256Mi"
+
+  securityContext:
+    enabled: true
+    runAsNonRoot: true
+    runAsUser: 10001
+
+  podAnnotations: {}
+
+  # Probes (desligadas por padrão; ligue se tiver endpoints)
+  livenessProbe:
+    enabled: false
+    httpGet:
+      path: /health
+      port: 3000
+    initialDelaySeconds: 20
+    periodSeconds: 10
+
+  readinessProbe:
+    enabled: false
+    httpGet:
+      path: /health
+      port: 3000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+  tolerations: []
+  nodeSelector: {}
+  affinity: {}
+
+# ===================================================================
+# Frontend (Next.js)
+# ===================================================================
+frontend:
+  enabled: true
+  replicas: 1
+
+  image:
+    repository: frontend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 3000
+
+  # Se não usar Ingress e quiser expor por NodePort:
+  nodePort:
+    enabled: true
+    port: 30080
+
+  # Variáveis de ambiente do frontend
+  env:
+    NEXT_PUBLIC_API_URL: "http://backend:3000"
+    NEXTAUTH_URL: "http://localhost:3000"         # ajuste quando publicar atrás de Ingress
+    NEXTAUTH_SECRET: "super-nextauth-secret"
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "300m"
+      memory: "256Mi"
+
+  securityContext:
+    enabled: true
+    runAsNonRoot: true
+    runAsUser: 10001
+
+  podAnnotations: {}
+
+  # Probes (desligadas por padrão; ligue se quiser checagem de página)
+  livenessProbe:
+    enabled: false
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 20
+    periodSeconds: 10
+
+  readinessProbe:
+    enabled: false
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+  tolerations: []
+  nodeSelector: {}
+  affinity: {}
+
+# ===================================================================
+# Ingress (opcional) – use quando quiser domínio/host e TLS
+# ===================================================================
+ingress:
+  enabled: false
+  className: ""                 # ex.: "nginx"
+  annotations: {}               # ex.: nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: "meuapp.local"      # ajuste seu host
+      paths:
+        - path: /
+          pathType: Prefix
+          serviceName: frontend # envia tráfego ao frontend (Service)
+          servicePort: 3000
+  tls: []                       # ex.: - secretName: meu-cert  hosts: ["meuapp.local"]
+
+# ===================================================================
+# Banco de Dados
+# ===================================================================
+database:
+  # Use um PostgreSQL externo já existente (recomendado se você já tem "meu-postgres" instalado)
+  external:
+    enabled: true
+    host: "meu-postgres-postgresql"
+    port: 5432
+    username: "postgres"
+    password: "postgres"
+    database: "minha_base"
+
+  # OU habilite um subchart do Bitnami Postgresql (desligado por padrão)
+  bitnami:
+    enabled: false
+    # Estes valores são passados para o chart bitnami/postgresql SE você decidir habilitar
+    auth:
+      postgresPassword: "postgres"
+      username: "postgres"
+      password: "postgres"
+      database: "minha_base"
+    primary:
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+
+# ===================================================================
+# Observabilidade (rótulos/annotations extras para Prometheus, etc.)
+# ===================================================================
+metrics:
+  prometheus:
+    serviceMonitor:
+      enabled: false
+      labels: {}

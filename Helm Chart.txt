@@ -1,0 +1,136 @@
+residencia/
+├── Chart.yaml
+├── values.yaml
+├── templates/
+│   ├── backend-deployment.yaml
+│   ├── backend-service.yaml
+│   ├── frontend-deployment.yaml
+│   ├── frontend-service.yaml
+│   ├── _helpers.tpl
+│   └── NOTES.txt
+
+---
+
+# Chart.yaml
+apiVersion: v2
+name: residencia
+description: Um app com frontend, backend e PostgreSQL
+version: 0.1.0
+appVersion: "1.0.0"
+
+---
+
+# values.yaml
+backend:
+  image: backend:latest
+  port: 3001
+
+frontend:
+  image: frontend:latest
+  port: 3000
+
+env:
+  databaseUrl: postgres://postgres:postgres@meu-postgres-postgresql:5432/minha_base
+  jwtSecret: super-secret-key
+  nextauthUrl: http://localhost:3000
+  nextauthSecret: super-nextauth-secret
+
+---
+
+# templates/backend-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: {{ .Values.backend.image }}
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+          env:
+            - name: DATABASE_URL
+              value: {{ .Values.env.databaseUrl }}
+            - name: JWT_SECRET
+              value: {{ .Values.env.jwtSecret }}
+          command: ["sh", "-c", "npm install && npx prisma generate && npx prisma migrate deploy && npm start"]
+
+---
+
+# templates/backend-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: {{ .Values.backend.port }}
+      targetPort: {{ .Values.backend.port }}
+
+---
+
+# templates/frontend-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: {{ .Values.frontend.image }}
+          imagePullPolicy: Never
+          ports:
+            - containerPort: {{ .Values.frontend.port }}
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: http://backend:{{ .Values.backend.port }}
+            - name: NEXTAUTH_URL
+              value: {{ .Values.env.nextauthUrl }}
+            - name: NEXTAUTH_SECRET
+              value: {{ .Values.env.nextauthSecret }}
+
+---
+
+# templates/frontend-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  type: NodePort
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: {{ .Values.frontend.port }}
+      nodePort: 30080
+
+---
+
+# templates/NOTES.txt
+Aplicacao implantada com sucesso!
+
+Acesse o frontend:
+  http://<minikube-ip>:30080

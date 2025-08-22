@@ -1,0 +1,75 @@
+Para rodar via helm
+helm install residencia ./caminho/do/chart
+
+# Helm Chart - Residencia App
+
+Este Helm Chart realiza o deploy completo da aplicação **residencia**, composta por:
+
+- Backend (Node.js ou outro stack)
+- Frontend (Next.js)
+- Banco de dados PostgreSQL
+
+## Pré-requisitos
+
+- [Helm](https://helm.sh/docs/intro/install/)
+- [Kubernetes](https://kubernetes.io/docs/setup/) (local com Minikube ou em nuvem)
+- Docker images já publicadas em algum registry ou carregadas no cluster (via `minikube image load`)
+
+---
+
+## Estrutura do Chart
+
+residencia/
+├── Chart.yaml
+├── values.yaml
+├── templates/
+│ ├── backend-deployment.yaml
+│ ├── backend-service.yaml
+│ ├── frontend-deployment.yaml
+│ ├── frontend-service.yaml
+│ ├── postgres-deployment.yaml
+│ └── postgres-service.yaml
+
+
+---
+
+## Instalação
+
+```bash
+helm install residencia ./residencia
+
+se estiver usando Minikube e imagens locais, execute antes:
+
+minikube image load backend:latest
+minikube image load frontend:latest
+
+Configurações
+Edite o arquivo values.yaml para ajustar as imagens e configurações:
+
+backend:
+  image: backend:latest
+  port: 3001
+
+frontend:
+  image: frontend:latest
+  port: 3000
+
+postgresql:
+  image: postgres:13
+  user: postgres
+  password: postgres
+  db: residencia
+  port: 5432
+
+
+Acesso à aplicação
+Com Minikube:
+minikube service frontend
+
+Com Kubernetes padrão ou GCP/nuvem, crie um Ingress ou use kubectl port-forward:
+kubectl port-forward svc/frontend 3000:3000
+
+Desinstalação
+helm uninstall residencia
+
+
